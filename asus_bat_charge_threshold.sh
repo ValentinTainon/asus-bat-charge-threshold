@@ -19,6 +19,7 @@ check_cmd() {
         echo -e "[$GREEN OK $RESET_CLR]"
     else
         echo -e "[$RED ERROR $RESET_CLR]"
+        exit 1
     fi
 }
 
