@@ -33,13 +33,13 @@ if [ "$(whoami)" != "root" ]; then
 fi
 
 # CHECK DEVICE TYPE
-if ! hostnamectl chassis | grep -q "laptop"; then
+if ! hostnamectl chassis | grep -qi "laptop"; then
     echo "Laptop not detected, this service is not compatible with this device"
     exit 1
 fi
 
 # CHECK HARDWARE VENDOR
-if ! hostnamectl | grep -q "Hardware Vendor: ASUS"; then
+if ! hostnamectl | grep -qi "hardware vendor: asus"; then
     echo "Asus hardware vendor not detected, this service is not compatible with this device"
     exit 1
 fi
@@ -74,20 +74,21 @@ for BAT_DIR_NAME in ${BAT_DIR_NAMES[@]}; do
                 echo -n "Updating the service file : "
             fi
 
-            echo "[Unit]
-            \t\t\tDescription=Set the bat charge threshold
-            \t\t\tAfter=multi-user.target
-            \t\t\tStartLimitIntervalSec=30
-            \t\t\tStartLimitBurst=2
+            cat <<- EOF > $BAT_SERVICE_FILE_PATH
+            [Unit]
+            Description=Set the bat charge threshold
+            After=multi-user.target
+            StartLimitIntervalSec=30
+            StartLimitBurst=2
 
-            \t\t\t[Service]
-            \t\t\tType=oneshot
-            \t\t\tRestart=on-failure
-            \t\t\tExecStart=/bin/bash -c 'echo $BAT_CHARGE_THRESHOLD >/sys/class/power_supply/$BAT_DIR_NAME/charge_control_end_threshold'
+            [Service]
+            Type=oneshot
+            Restart=on-failure
+            ExecStart=/bin/bash -c 'echo $BAT_CHARGE_THRESHOLD >/sys/class/power_supply/$BAT_DIR_NAME/charge_control_end_threshold'
 
-            \t\t\t[Install]
-            \t\t\tWantedBy=multi-user.target
-            \t\t\t" >$BAT_SERVICE_FILE_PATH
+            [Install]
+            WantedBy=multi-user.target
+EOF
             check_cmd
 
             if [ "$IS_SERVICE_EXIST" == "false" ]; then
@@ -105,7 +106,7 @@ for BAT_DIR_NAME in ${BAT_DIR_NAMES[@]}; do
             fi
 
             echo -n "Check that the service is activated and operating correctly : "
-            systemctl status bat-charge-threshold | grep -qE "enabled|SUCCESS" >/dev/null
+            systemctl status bat-charge-threshold | grep -qEi "enabled|success" >/dev/null
             check_cmd
 
             echo -ne "Checking the new battery charge threshold value :$CYAN $(cat /sys/class/power_supply/$BAT_DIR_NAME/charge_control_end_threshold)% $RESET_CLR"
